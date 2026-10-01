@@ -10,6 +10,7 @@ const hex = (s) => [1, 3, 5].map((i) => parseInt(s.substr(i, 2), 16) / 255);
 const mix = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 const sm = (a, b, x) => { const t = Math.max(0, Math.min(1, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pg = (x) => clamp((x + 80) / 160, 0, 1); // 西行进度：0=长安(西) → 1=灵山(东)
 const rngf = (a) => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 const mkN = (s) => { const r = rngf(s), a = Array.from({ length: 1024 }, r), h = (x, y) => a[(Math.imul(x, 73856093) ^ Math.imul(y, 19349663)) & 1023];
   return (x, y) => { const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, u = fx * fx * (3 - 2 * fx), v = fy * fy * (3 - 2 * fy);
@@ -74,13 +75,13 @@ export function start3D(box, S) {
   const dR = (x, z) => { let m = 1e9; for (let i = 0; i < pts.length - 1; i++) { const a = pts[i], b = pts[i + 1], dx = b[0] - a[0], dz = b[1] - a[1], t = clamp(((x - a[0]) * dx + (z - a[1]) * dz) / (dx * dx + dz * dz || 1), 0, 1); m = Math.min(m, Math.hypot(x - a[0] - t * dx, z - a[1] - t * dz)); } return m; };
   const H = (x, z) => {
     const d = dR(x, z), b = N(x / 26 + 5, z / 26) * .65 + N(x / 10, z / 10) * .35;
-    let h = b * 5 - 1.5 + Math.pow(Math.max(0, b - .52) * 2.4, 2) * 30 + sm(.75, 1.1, Math.hypot(x, z) / LIM) * 26;
+    const pp = pg(x); let h = b * 5 - 1.5 + Math.pow(Math.max(0, b - .52) * 2.4, 2) * (14 + 22 * pp) + sm(.75, 1.1, Math.hypot(x, z) / LIM) * (7 + 24 * pp);
     for (const [lx, lz] of lakes) { const l = 1 - Math.hypot(x - lx, z - lz) / 11; if (l > 0) h -= l * 5 * sm(2, 5, d); }
     const w = 1 - sm(2.2, 10, d);
     return Math.max(-4, h * (1 - w) + (1.1 + N(x / 6, z / 6) * .3) * w);
   };
   const colAt = (x, z, h, d) => {
-    let c = h < .6 ? C.sand : h < 4 ? mix(C.g1, C.g2, h / 4) : h < 10 ? mix(C.g2, C.rock, (h - 4) / 6) : mix(C.rock, C.snow, Math.min(1, (h - 10) / 6));
+    const sl = 9 + (1 - pg(x)) * 60; let c = h < .6 ? C.sand : h < 4 ? mix(C.g1, C.g2, h / 4) : h < 10 ? mix(C.g2, C.rock, (h - 4) / 6) : mix(C.rock, C.snow, clamp((h - sl) / 6, 0, 1));
     c = mix(c, C.road, 1 - sm(1.6, 3.2, d));
     const j = .88 + .24 * N(x * 1.3, z * 1.3); return c.map((v) => Math.min(1, v * j));
   };
@@ -99,6 +100,8 @@ export function start3D(box, S) {
     const s = .8 + r() * 1.1, g = .85 + r() * .3;
     cone(Mx, x, h - .1, z, 1.1 * s, 2.8 * s, [.2 * g, .42 * g, .22 * g], 5); cone(Mx, x, h + 1.4 * s, z, .8 * s, 2.2 * s, [.27 * g, .52 * g, .28 * g], 5);
   }
+  const LS = pts[pts.length - 1], lsx = LS[0] + 15, lsz = LS[1] - 4, lsy = Math.max(H(lsx, lsz), 1);
+  cone(Mx, lsx, lsy - 3, lsz, 18, 28, hex('#d9d3c3'), 7); cone(Mx, lsx, lsy + 8, lsz, 11, 18, hex('#f2eee3'), 7); cone(Mx, lsx, lsy + 21, lsz, 4.2, 8, hex('#f0c24a'), 7);
   cube(U); const u1 = [0, U.length / 9]; cone(U, 0, 0, 0, .5, 1, [1, 1, 1], 6); const u2 = [u1[1], U.length / 9 - u1[1]];
   const bS = buf(Mx), nS = Mx.length / 9, bU = buf(U);
   const I = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
@@ -108,8 +111,8 @@ export function start3D(box, S) {
   const idx = (id) => nodes.findIndex((n) => n.id === id);
   let cur = S.current.playerNodeId, i0 = Math.max(0, idx(cur));
   const lead = { x: pts[i0][0], z: pts[i0][1] }, trail = [], ni = i0 + 1 < pts.length ? i0 + 1 : i0 - 1;
-  let path = [], hd = Math.atan2(pts[ni][0] - pts[i0][0], pts[ni][1] - pts[i0][1]) * (i0 + 1 < pts.length ? 1 : -1), moving = false, VP = I, hits = [], lastMode = '', dr = null;
-  const cam = { yaw: hd, pit: PRE.over[0], dist: PRE.over[1] }, tgt = { pit: PRE.over[0], dist: PRE.over[1] };
+  let path = [], hd = i0 + 1 < pts.length ? Math.atan2(pts[pts.length - 1][0] - pts[i0][0], pts[pts.length - 1][1] - pts[i0][1]) : Math.atan2(pts[i0][0] - pts[i0 - 1][0], pts[i0][1] - pts[i0 - 1][1]), moving = false, VP = I, hits = [], lastMode = '', dr = null, snap = 0, sY = null;
+  const cam = { yaw: Math.PI, pit: PRE.over[0], dist: PRE.over[1] }, tgt = { pit: PRE.over[0], dist: PRE.over[1] };
   box.append(cv, ov);
   const cx = ov.getContext('2d');
   const proj = (x, y, z) => { const c = VP, w = c[3] * x + c[7] * y + c[11] * z + c[15]; if (w <= .1) return null; return [(c[0] * x + c[4] * y + c[8] * z + c[12]) / w * .5 + .5, (c[1] * x + c[5] * y + c[9] * z + c[13]) / w * .5 + .5, w]; };
@@ -145,9 +148,9 @@ export function start3D(box, S) {
     if (path.length) { const [tx, tz] = path[0], dx = tx - lead.x, dz = tz - lead.z, dd = Math.hypot(dx, dz), st = Math.min(dd, dt * 12); if (dd < .05) path.shift(); else { lead.x += dx / dd * st; lead.z += dz / dd * st; hd = Math.atan2(dx, dz); moving = true; } }
     const tl = trail[0]; if (!tl || Math.hypot(lead.x - tl[0], lead.z - tl[1]) > .5) { trail.unshift([lead.x, lead.z]); trail.length = Math.min(trail.length, 60); }
     // 镜头
-    if (s.mode !== lastMode) { lastMode = s.mode; [tgt.pit, tgt.dist] = PRE[s.mode] || PRE.over; }
+    if (s.mode !== lastMode) { lastMode = s.mode; [tgt.pit, tgt.dist] = PRE[s.mode] || PRE.over; snap = 1.5; sY = s.mode === 'over' ? Math.PI : null; }
     const k = 1 - Math.exp(-dt * 4); cam.pit += (tgt.pit - cam.pit) * k; cam.dist += (tgt.dist - cam.dist) * k;
-    if (moving && !dr) cam.yaw += (((hd - cam.yaw + Math.PI) % 6.2832 + 6.2832) % 6.2832 - Math.PI) * Math.min(1, dt * 2.5);
+    if (!dr && (snap > 0 || (moving && s.mode !== 'over'))) { snap -= dt; const ty = snap > 0 && sY !== null ? sY : hd; cam.yaw += (((ty - cam.yaw + Math.PI) % 6.2832 + 6.2832) % 6.2832 - Math.PI) * Math.min(1, dt * 3); }
     const lh = H(lead.x, lead.z), T = [lead.x, lh + 1.6, lead.z], cp = Math.cos(cam.pit), f = [Math.sin(cam.yaw) * cp, Math.sin(cam.pit), Math.cos(cam.yaw) * cp];
     const e = [T[0] - f[0] * cam.dist, T[1] - f[1] * cam.dist, T[2] - f[2] * cam.dist]; e[1] = Math.max(e[1], H(e[0], e[2]) + 1.2);
     VP = mul(pers(1 + .2 * Math.max(0, 1 - cam.dist / 8), w / h, .3, 420), look(e, [e[0] + f[0], e[1] + f[1], e[2] + f[2]]));
@@ -162,13 +165,15 @@ export function start3D(box, S) {
     nodes.forEach((n, i) => {
       const [x, z] = pts[i], g = H(x, z), ty = TYC[n.type] || TYC.shrine, trb = (s.tribulations || []).find((q) => q.locationId === n.id), act = trb && !trb.completed;
       let top;
-      if (n.type === 'mountain') { obj(u2, x, g - .3, z, 7, 8, 7, 0, ty[0]); obj(u2, x, g + 5.2, z, 2.8, 2.8, 2.8, 0, ty[1]); top = g + 8.5; }
+      if (cam.dist < 3 && n.id === s.playerNodeId) top = g + 3;
+      else if (n.type === 'mountain') { obj(u2, x, g - .3, z, 7, 8, 7, 0, ty[0]); obj(u2, x, g + 5.2, z, 2.8, 2.8, 2.8, 0, ty[1]); top = g + 8.5; }
       else { obj(u1, x, g, z, ty[2], ty[2] * .8, ty[2], .4, ty[0]); if (ty[3]) obj(u2, x, g + ty[2] * .8, z, ty[2] * 1.7, ty[3], ty[2] * 1.7, .4, ty[1]); top = g + ty[2] * .8 + ty[3]; }
       if (act) obj(u2, x, top + 1 + Math.sin(t * 3 + i) * .35, z, 1.5, 2.8, 1.5, 0, [1, .32, .22]); else if (trb) obj(u2, x, top + .5, z, 1, 1.5, 1, 0, [.37, .82, .54]);
-      if (n.id === s.playerNodeId) obj(u1, x, g, z, .5, 22, .5, 0, [1, .82, .35]);
+      if (n.id === s.playerNodeId && cam.dist >= 3) obj(u1, x, g, z, .5, 22, .5, 0, [1, .82, .35]);
       if (n.id === s.selectedId) { const q = 1 + .08 * Math.sin(t * 4); obj(u1, x, g + .08, z, 7 * q, .2, 7 * q, t * .8, [1, .95, .7]); obj(u1, x, g + .08, z, 7 * q, .2, 7 * q, t * .8 + .785, [1, .95, .7]); }
       lab.push([n, x, g, z, top]);
     });
+    if (Math.hypot(lead.x - LS[0], lead.z - LS[1]) < 90) obj(u1, lsx, lsy + 28, lsz, 1.4, 90, 1.4, 0, [1, .85, .4]); // 临近灵山，佛光显现
     // 取经队伍
     const party = s.activeParty && s.activeParty.length ? s.activeParty : ['tang_sanzang'];
     party.forEach((id, k2) => {
@@ -181,7 +186,7 @@ export function start3D(box, S) {
     cx.clearRect(0, 0, w, h); cx.textAlign = 'center'; cx.font = `bold ${13 * dpr}px "Noto Serif SC",serif`; cx.lineWidth = 4 * dpr; cx.lineJoin = 'round'; hits = [];
     lab.forEach(([n, x, g, z, top]) => {
       const hp = proj(x, g + 3, z); if (hp) hits.push({ n, x: hp[0] * w / dpr, y: (1 - hp[1]) * h / dpr });
-      const p = proj(x, top + 2.2, z), key = n.id === s.playerNodeId || n.id === s.selectedId; if (!p || (p[2] > 120 && !key)) return;
+      const p = proj(x, top + 2.2, z), key = n.id === s.playerNodeId || n.id === s.selectedId; if (!p || (p[2] > 75 && !key)) return;
       const tx = p[0] * w, ty2 = (1 - p[1]) * h, txt = n.name.split(' · ')[0] + (n.id === s.playerNodeId ? ' ▼' : '');
       cx.strokeStyle = 'rgba(15,10,5,.85)'; cx.fillStyle = n.id === s.playerNodeId ? '#ffd25a' : n.id === s.selectedId ? '#ffffff' : '#f3e6c8';
       cx.strokeText(txt, tx, ty2); cx.fillText(txt, tx, ty2);
