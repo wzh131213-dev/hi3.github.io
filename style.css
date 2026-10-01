@@ -826,6 +826,10 @@ video {
   height: 2.25rem;
 }
 
+.h-\[74vh\] {
+  height: 74vh;
+}
+
 .h-full {
   height: 100%;
 }
@@ -842,8 +846,8 @@ video {
   min-height: 460px;
 }
 
-.min-h-\[520px\] {
-  min-height: 520px;
+.min-h-\[560px\] {
+  min-height: 560px;
 }
 
 .min-h-screen {
@@ -1036,6 +1040,10 @@ video {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+.cursor-grab {
+  cursor: grab;
+}
+
 .cursor-not-allowed {
   cursor: not-allowed;
 }
@@ -1068,6 +1076,10 @@ video {
 
 .items-start {
   align-items: flex-start;
+}
+
+.items-end {
+  align-items: flex-end;
 }
 
 .items-center {
@@ -1172,6 +1184,10 @@ video {
 
 .rounded-lg {
   border-radius: 0.5rem;
+}
+
+.rounded-md {
+  border-radius: 0.375rem;
 }
 
 .rounded-xl {
@@ -1478,6 +1494,10 @@ video {
   background-color: rgb(12 10 9 / 0.6);
 }
 
+.bg-stone-950\/70 {
+  background-color: rgb(12 10 9 / 0.7);
+}
+
 .bg-stone-950\/80 {
   background-color: rgb(12 10 9 / 0.8);
 }
@@ -1609,6 +1629,10 @@ video {
 .object-cover {
   -o-object-fit: cover;
      object-fit: cover;
+}
+
+.p-1 {
+  padding: 0.25rem;
 }
 
 .p-2 {
@@ -1859,6 +1883,10 @@ video {
   color: rgb(254 243 199 / var(--tw-text-opacity, 1));
 }
 
+.text-amber-100\/80 {
+  color: rgb(254 243 199 / 0.8);
+}
+
 .text-amber-200 {
   --tw-text-opacity: 1;
   color: rgb(253 230 138 / var(--tw-text-opacity, 1));
@@ -1976,6 +2004,10 @@ video {
   color: rgb(214 211 209 / var(--tw-text-opacity, 1));
 }
 
+.text-stone-300\/80 {
+  color: rgb(214 211 209 / 0.8);
+}
+
 .text-stone-400 {
   --tw-text-opacity: 1;
   color: rgb(168 162 158 / var(--tw-text-opacity, 1));
@@ -2066,6 +2098,12 @@ video {
 .shadow-amber-400\/20 {
   --tw-shadow-color: rgb(251 191 36 / 0.2);
   --tw-shadow: var(--tw-shadow-colored);
+}
+
+.ring {
+  --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+  --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(3px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+  box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
 }
 
 .ring-1 {
@@ -2333,6 +2371,10 @@ video {
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
 }
 
+.active\:cursor-grabbing:active {
+  cursor: grabbing;
+}
+
 .group:hover .group-hover\:scale-105 {
   --tw-scale-x: 1.05;
   --tw-scale-y: 1.05;
@@ -2372,10 +2414,6 @@ video {
 
   .sm\:h-44 {
     height: 11rem;
-  }
-
-  .sm\:min-h-\[580px\] {
-    min-height: 580px;
   }
 
   .sm\:w-10 {
